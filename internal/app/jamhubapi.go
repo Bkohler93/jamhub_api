@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/bkohler93/jamhubapi/internal/database"
 	"github.com/go-chi/chi/v5"
@@ -33,6 +34,8 @@ func RunApp() {
 	mux := chi.NewRouter()
 	mux.Use(cors.AllowAll().Handler)
 
+	FileServer(mux)
+
 	mux.Mount("/v1", getV1Router(cfg))
 
 	srv := http.Server{
@@ -42,4 +45,18 @@ func RunApp() {
 
 	fmt.Printf("Listening on localhost:%s\n", env.port)
 	log.Fatal(srv.ListenAndServe())
+}
+
+// FileServer is serving static files.
+func FileServer(router *chi.Mux) {
+	root := "./"
+	fs := http.FileServer(http.Dir(root))
+
+	router.Get("/docs", func(w http.ResponseWriter, r *http.Request) {
+		if _, err := os.Stat(root + r.RequestURI); os.IsNotExist(err) {
+			http.StripPrefix(r.RequestURI, fs).ServeHTTP(w, r)
+		} else {
+			fs.ServeHTTP(w, r)
+		}
+	})
 }

@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/bkohler93/jamhubapi/internal/database"
+	"github.com/go-chi/chi/v5"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -293,4 +295,451 @@ func (cfg *apiConfig) postRefreshHandler(w http.ResponseWriter, r *http.Request,
 	}
 
 	respondJSON(w, http.StatusOK, resBody)
+}
+
+func (cfg *apiConfig) postRoomsHandler(w http.ResponseWriter, r *http.Request, u User) {
+	reqBody := struct {
+		Name string `json:"name"`
+	}{}
+	defer r.Body.Close()
+
+	decoder := json.NewDecoder(r.Body)
+	decoder.Decode(&reqBody)
+
+	rm, err := cfg.db.CreateRoom(r.Context(), database.CreateRoomParams{
+		ID:        uuid.New(),
+		Name:      reqBody.Name,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	})
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, fmt.Sprintf("error creating room, %v", err))
+		return
+	}
+	room := databaseRoomToRoom(rm)
+
+	respondJSON(w, http.StatusCreated, room)
+}
+
+func (cfg *apiConfig) getRoomsHandler(w http.ResponseWriter, r *http.Request) {
+	var limit int
+	l := r.URL.Query().Get("limit")
+	limit, err := strconv.Atoi(l)
+	if err != nil {
+		limit = 10
+	}
+	rooms, err := cfg.db.GetRooms(r.Context(), int32(limit))
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, fmt.Sprintf("could not get rooms - %v", err))
+		return
+	}
+
+	respondJSON(w, http.StatusOK, rooms)
+}
+
+func (cfg *apiConfig) getRoomByIDHandler(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "room_id")
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid room id")
+		return
+	}
+
+	rm, err := cfg.db.GetRoomByID(r.Context(), uid)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "failed to find room with that id")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, rm)
+}
+
+func (cfg *apiConfig) deleteRoomByIDHandler(w http.ResponseWriter, r *http.Request, u User) {
+	id := chi.URLParam(r, "room_id")
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid room id")
+	}
+
+	err = cfg.db.DeleteRoom(r.Context(), uid)
+	if err != nil {
+		respondError(w, http.StatusOK, "no room to delete with that id")
+	}
+
+	respondJSON(w, http.StatusOK, nil)
+}
+
+func (cfg *apiConfig) postPostsHandler(w http.ResponseWriter, r *http.Request, u User) {
+	reqBody := struct {
+		RoomID string `json:"room_id"`
+		Link   string `json:"link"`
+	}{}
+
+	decoder := json.NewDecoder(r.Body)
+	defer r.Body.Close()
+
+	decoder.Decode(&reqBody)
+	if reqBody.RoomID == "" || reqBody.Link == "" {
+		respondError(w, http.StatusBadRequest, "Expected room_id and link in request body")
+		return
+	}
+
+	roomUID, err := uuid.Parse(reqBody.RoomID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid room_id")
+		return
+	}
+
+	p, err := cfg.db.CreatePost(r.Context(), database.CreatePostParams{
+		ID:        uuid.New(),
+		UserID:    u.ID,
+		RoomID:    roomUID,
+		Link:      reqBody.Link,
+		UpdatedAt: time.Now(),
+		CreatedAt: time.Now(),
+	})
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, fmt.Sprintf("could not create post - %v", err))
+		return
+	}
+
+	post := databasePostToPost(p)
+
+	respondJSON(w, http.StatusCreated, post)
+}
+
+func (cfg *apiConfig) deletePostsHandler(w http.ResponseWriter, r *http.Request, u User) {
+	postID := chi.URLParam(r, "post_id")
+	if postID == "" {
+		respondError(w, http.StatusBadRequest, "requires post id")
+		return
+	}
+	postUID, err := uuid.Parse(postID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid post id")
+		return
+	}
+
+	p, err := cfg.db.GetPost(r.Context(), postUID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "no post with that id was found")
+		return
+	}
+
+	if p.UserID != u.ID {
+		respondError(w, http.StatusUnauthorized, "user not authorized to delete this post")
+		return
+	}
+
+	err = cfg.db.DeletePost(r.Context(), p.ID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, fmt.Sprintf("error deleting post - %v", err))
+	}
+
+	respondJSON(w, http.StatusOK, nil)
+}
+
+func (cfg *apiConfig) getRoomPostsHandler(w http.ResponseWriter, r *http.Request) {
+	reqBody := struct {
+		RoomID string `json:"room_id"`
+	}{}
+	defer r.Body.Close()
+	decoder := json.NewDecoder(r.Body)
+	decoder.Decode(&reqBody)
+
+	if reqBody.RoomID == "" {
+		respondError(w, http.StatusBadRequest, "requires room_id to retrieve posts for room")
+		return
+	}
+	roomUID, err := uuid.Parse(reqBody.RoomID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, fmt.Sprintf("invalid room_id - %v", err))
+		return
+	}
+
+	ps, err := cfg.db.GetRoomPosts(r.Context(), roomUID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "no posts found in room with room_id")
+		return
+	}
+
+	var posts []Post
+	for _, p := range ps {
+		posts = append(posts, databasePostToPost(p))
+	}
+
+	respondJSON(w, http.StatusOK, posts)
+}
+
+func (cfg *apiConfig) postRoomSubsHandler(w http.ResponseWriter, r *http.Request, u User) {
+	reqBody := struct {
+		RoomID string `json:"room_id"`
+	}{}
+
+	decoder := json.NewDecoder(r.Body)
+	defer r.Body.Close()
+	decoder.Decode(&reqBody)
+
+	if reqBody.RoomID == "" {
+		respondError(w, http.StatusBadRequest, "expected room_id in request - ")
+		return
+	}
+
+	roomUID, err := uuid.Parse(reqBody.RoomID)
+	if err != nil {
+		respondError(w, http.StatusBadGateway, fmt.Sprintf("invalid room_id - %v", err))
+		return
+	}
+
+	_, err = cfg.db.GetRoomByID(r.Context(), roomUID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, fmt.Sprintf("no room with that id exists - %v", err))
+		return
+	}
+
+	rms, err := cfg.db.CreateRoomSubscription(r.Context(), database.CreateRoomSubscriptionParams{
+		ID:        uuid.New(),
+		RoomID:    roomUID,
+		UserID:    u.ID,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	})
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, fmt.Sprintf("server could not create room subscription - %v", err))
+		return
+	}
+
+	roomSub := databaseRoomSubscriptionToRoomSubscription(rms)
+
+	respondJSON(w, http.StatusCreated, roomSub)
+}
+
+func (cfg *apiConfig) deleteRoomSubsHandler(w http.ResponseWriter, r *http.Request, u User) {
+	roomSubID := chi.URLParam(r, "room_sub_id")
+	roomSubUUID, err := uuid.Parse(roomSubID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, fmt.Sprintf("expected valid id query parameter - %v", err))
+		return
+	}
+
+	if err = cfg.db.DeleteRoomSubscription(r.Context(), database.DeleteRoomSubscriptionParams{
+		RoomID: roomSubUUID,
+		UserID: u.ID,
+	}); err != nil {
+		respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to delete room susbcription - %v", err))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (cfg *apiConfig) getAllRoomSubsHandler(w http.ResponseWriter, r *http.Request) {
+	rms, err := cfg.db.GetAllRoomSubs(r.Context())
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to retrieve room subs - %v", err))
+		return
+	}
+
+	var roomSubs []RoomSubscription
+	for _, rm := range rms {
+		roomSubs = append(roomSubs, databaseRoomSubscriptionToRoomSubscription(rm))
+	}
+
+	respondJSON(w, http.StatusOK, roomSubs)
+}
+
+func (cfg *apiConfig) getAllRoomRoomSubsHandler(w http.ResponseWriter, r *http.Request) {
+	roomID := chi.URLParam(r, "room_id")
+	roomUID, err := uuid.Parse(roomID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, fmt.Sprintf("expected valid room id in url - %v", err))
+		return
+	}
+	rms, err := cfg.db.GetRoomRoomSubscriptions(r.Context(), roomUID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, fmt.Sprintf("error retrieving room subs for given room - %v", err))
+		return
+	}
+
+	var roomSubs []RoomSubscription
+	for _, rm := range rms {
+		roomSubs = append(roomSubs, databaseRoomSubscriptionToRoomSubscription(rm))
+	}
+
+	respondJSON(w, http.StatusOK, roomSubs)
+}
+
+func (cfg *apiConfig) getUserRoomSubsHandler(w http.ResponseWriter, r *http.Request, u User) {
+	rms, err := cfg.db.GetUserRoomSusbcriptions(r.Context(), u.ID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to retrieve room subs for user - %v", err))
+		return
+	}
+
+	var roomSubs []RoomSubscription
+	for _, rm := range rms {
+		roomSubs = append(roomSubs, databaseRoomSubscriptionToRoomSubscription(rm))
+	}
+
+	respondJSON(w, http.StatusOK, roomSubs)
+}
+
+func (cfg *apiConfig) postPostVotesHandler(w http.ResponseWriter, r *http.Request, u User) {
+	reqBody := struct {
+		IsUpvote bool   `json:"is_upvote"`
+		PostID   string `json:"post_id"`
+	}{}
+
+	defer r.Body.Close()
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&reqBody)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, fmt.Sprintf("requires 'isUpvote' field in request body - %v", err))
+		return
+	}
+
+	postUID, err := uuid.Parse(reqBody.PostID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, fmt.Sprintf("invalid post_id - %v", err))
+		return
+	}
+
+	pv, err := cfg.db.CreatePostVote(r.Context(), database.CreatePostVoteParams{
+		ID:        uuid.New(),
+		PostID:    postUID,
+		UserID:    u.ID,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		IsUp:      reqBody.IsUpvote,
+	})
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, fmt.Sprintf("error creating post vote - %v", err))
+		return
+	}
+	postVote := databasePostVoteToPostVote(pv)
+
+	respondJSON(w, http.StatusCreated, postVote)
+}
+
+func (cfg *apiConfig) deletePostHandler(w http.ResponseWriter, r *http.Request, u User) {
+	postID := chi.URLParam(r, "post_id")
+	if postID == "" {
+		respondError(w, http.StatusBadRequest, "requires 'post_id' in URL")
+		return
+	}
+	postUID, err := uuid.Parse(postID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, fmt.Sprintf("expected valid post_id - %v", err))
+		return
+	}
+
+	err = cfg.db.DeletePostVote(r.Context(), postUID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, fmt.Sprintf("error deleting post vote - %v", err))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (cfg *apiConfig) getUserSubscribedRoomsHandler(w http.ResponseWriter, r *http.Request, u User) {
+	var l int
+	var o int
+
+	limit := r.URL.Query().Get("limit")
+	offset := r.URL.Query().Get("offset")
+
+	l, err := strconv.Atoi(limit)
+	if err != nil {
+		l = 10
+	}
+
+	o, err = strconv.Atoi(offset)
+	if err != nil {
+		o = 0
+	}
+
+	rms, err := cfg.db.GetUserRoomsOrderedBySubs(r.Context(), database.GetUserRoomsOrderedBySubsParams{
+		UserID: u.ID,
+		Limit:  int32(l),
+		Offset: int32(o),
+	})
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, fmt.Sprintf("error retrieving user subscribed rooms - %v", err))
+		return
+	}
+
+	respondJSON(w, http.StatusOK, rms)
+}
+
+func (cfg *apiConfig) getRoomsOrderedByRoomSubsHandler(w http.ResponseWriter, r *http.Request) {
+	var l int
+	var o int
+
+	limit := r.URL.Query().Get("limit")
+	offset := r.URL.Query().Get("offset")
+
+	l, err := strconv.Atoi(limit)
+	if err != nil {
+		l = 10
+	}
+
+	o, err = strconv.Atoi(offset)
+	if err != nil {
+		o = 0
+	}
+	rms, err := cfg.db.GetRoomsOrderedBySubs(r.Context(), database.GetRoomsOrderedBySubsParams{
+		Limit:  int32(l),
+		Offset: int32(o),
+	})
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to retrieve rooms - %v", err))
+		return
+	}
+
+	respondJSON(w, http.StatusOK, rms)
+}
+
+func (cfg *apiConfig) getRoomPostsOrderedHandler(w http.ResponseWriter, r *http.Request) {
+	reqBody := struct {
+		RoomID string `json:"room_id"`
+	}{}
+
+	decoder := json.NewDecoder(r.Body)
+	decoder.Decode(&reqBody)
+	defer r.Body.Close()
+
+	if reqBody.RoomID == "" {
+		respondError(w, http.StatusBadRequest, "failed to provide room_id with request")
+		return
+	}
+
+	roomUID, err := uuid.Parse(reqBody.RoomID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid room_id provided")
+		return
+	}
+
+	orderedOption := r.URL.Query().Get("select")
+	if orderedOption == "" {
+		orderedOption = "new"
+	}
+
+	if orderedOption == "new" {
+		rms, err := cfg.db.GetNewRoomPosts(r.Context(), roomUID)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to retrieve new room posts - %v", err))
+			return
+		}
+
+		respondJSON(w, http.StatusOK, rms)
+	} else {
+		rms, err := cfg.db.GetTopRoomPosts(r.Context(), roomUID)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to retrieve top room posts - %v", err))
+			return
+		}
+
+		respondJSON(w, http.StatusOK, rms)
+	}
 }

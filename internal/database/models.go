@@ -11,10 +11,43 @@ import (
 	"github.com/google/uuid"
 )
 
+type Post struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	RoomID    uuid.UUID
+	Link      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type PostVote struct {
+	ID        uuid.UUID
+	PostID    uuid.UUID
+	UserID    uuid.UUID
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	IsUp      bool
+}
+
 type RevokedToken struct {
 	ID        uuid.UUID
 	UserID    uuid.UUID
 	RevokedAt time.Time
+}
+
+type Room struct {
+	ID        uuid.UUID
+	Name      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type RoomSubscription struct {
+	ID        uuid.UUID
+	RoomID    uuid.UUID
+	UserID    uuid.UUID
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type User struct {

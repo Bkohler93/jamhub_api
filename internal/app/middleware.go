@@ -16,6 +16,10 @@ func (cfg *apiConfig) authMiddleware(handler authHandler) http.HandlerFunc {
 		authStr := r.Header.Get("Authorization")
 		jwtEncoded := strings.Replace(authStr, "Bearer ", "", 1)
 
+		if jwtEncoded == "" {
+			respondError(w, http.StatusUnauthorized, "no access token present")
+			return
+		}
 		claims := jwt.RegisteredClaims{}
 		jwt, err := jwt.ParseWithClaims(jwtEncoded, &claims, func(t *jwt.Token) (interface{}, error) {
 			return []byte(cfg.jwtSecret), nil
