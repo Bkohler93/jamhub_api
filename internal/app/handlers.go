@@ -36,7 +36,7 @@ func (cfg *apiConfig) postUsersHandler(w http.ResponseWriter, r *http.Request) {
 
 	_, err := cfg.db.GetUserByDisplayName(r.Context(), reqBody.DisplayName)
 	if err == nil {
-		respondError(w, http.StatusInternalServerError, "user already exists with that display name")
+		respondError(w, http.StatusBadRequest, "user already exists with that display name")
 		return
 	}
 
@@ -139,7 +139,24 @@ func (cfg *apiConfig) putUsersHandler(w http.ResponseWriter, r *http.Request, u 
 	}
 
 	u = databaseUsertoUser(user)
-	respondJSON(w, http.StatusOK, u)
+
+	respBody := struct {
+		ID          uuid.UUID `json:"id"`
+		Email       string    `json:"email"`
+		Phone       string    `json:"phone"`
+		DisplayName string    `json:"display_name"`
+		CreatedAt   time.Time `json:"created_at"`
+		UpdatedAt   time.Time `json:"updated_at"`
+	}{
+		ID:          u.ID,
+		Email:       u.Email,
+		Phone:       u.Phone,
+		DisplayName: u.DisplayName,
+		CreatedAt:   u.CreatedAt,
+		UpdatedAt:   u.UpdatedAt,
+	}
+
+	respondJSON(w, http.StatusOK, respBody)
 }
 
 func (cfg *apiConfig) postLoginHandler(w http.ResponseWriter, r *http.Request) {
@@ -363,7 +380,7 @@ func (cfg *apiConfig) deleteRoomByIDHandler(w http.ResponseWriter, r *http.Reque
 
 	err = cfg.db.DeleteRoom(r.Context(), uid)
 	if err != nil {
-		respondError(w, http.StatusOK, "no room to delete with that id")
+		respondError(w, http.StatusNoContent, "no room to delete with that id")
 	}
 
 	respondJSON(w, http.StatusOK, nil)
@@ -669,7 +686,27 @@ func (cfg *apiConfig) getUserSubscribedRoomsHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	respondJSON(w, http.StatusOK, rms)
+	type rmRespBody struct {
+		RoomID            uuid.UUID `json:"room_id"`
+		RoomName          string    `json:"room_name"`
+		CreatedAt         time.Time `json:"created_at"`
+		UpdatedAt         time.Time `json:"updated"`
+		SubscriptionCount int       `json:"subscription_count"`
+	}
+
+	var respBody []rmRespBody
+
+	for _, rm := range rms {
+		respBody = append(respBody, rmRespBody{
+			RoomID:            rm.RoomID,
+			RoomName:          rm.RoomName,
+			CreatedAt:         rm.CreatedAt,
+			UpdatedAt:         rm.UpdatedAt,
+			SubscriptionCount: int(rm.SubscriptionCount),
+		})
+	}
+
+	respondJSON(w, http.StatusOK, respBody)
 }
 
 func (cfg *apiConfig) getRoomsOrderedByRoomSubsHandler(w http.ResponseWriter, r *http.Request) {
@@ -697,7 +734,26 @@ func (cfg *apiConfig) getRoomsOrderedByRoomSubsHandler(w http.ResponseWriter, r 
 		return
 	}
 
-	respondJSON(w, http.StatusOK, rms)
+	type respBody struct {
+		RoomID            uuid.UUID `json:"room_id"`
+		RoomName          string    `json:"room_name"`
+		CreatedAt         time.Time `json:"created_at"`
+		UpdatedAt         time.Time `json:"updated_at"`
+		SubscriptionCount int       `json:"subscription_count"`
+	}
+
+	var res []respBody
+	for _, rm := range rms {
+		res = append(res, respBody{
+			RoomID:            rm.RoomID,
+			RoomName:          rm.RoomName,
+			CreatedAt:         rm.CreatedAt,
+			UpdatedAt:         rm.UpdatedAt,
+			SubscriptionCount: int(rm.SubscriptionCount),
+		})
+	}
+
+	respondJSON(w, http.StatusOK, res)
 }
 
 func (cfg *apiConfig) getRoomPostsOrderedHandler(w http.ResponseWriter, r *http.Request) {
@@ -721,25 +777,52 @@ func (cfg *apiConfig) getRoomPostsOrderedHandler(w http.ResponseWriter, r *http.
 	}
 
 	orderedOption := r.URL.Query().Get("select")
-	if orderedOption == "" {
+	if orderedOption != "top" {
 		orderedOption = "new"
 	}
 
 	if orderedOption == "new" {
-		rms, err := cfg.db.GetNewRoomPosts(r.Context(), roomUID)
+		ps, err := cfg.db.GetNewRoomPosts(r.Context(), roomUID)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to retrieve new room posts - %v", err))
 			return
 		}
 
-		respondJSON(w, http.StatusOK, rms)
+		var respBody []Post
+
+		for _, p := range ps {
+			respBody = append(respBody, databasePostToPost(p))
+		}
+
+		respondJSON(w, http.StatusOK, respBody)
 	} else {
-		rms, err := cfg.db.GetTopRoomPosts(r.Context(), roomUID)
+		ps, err := cfg.db.GetTopRoomPosts(r.Context(), roomUID)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to retrieve top room posts - %v", err))
 			return
 		}
 
-		respondJSON(w, http.StatusOK, rms)
+		type post struct {
+			PostID     uuid.UUID `json:"post_id"`
+			RoomID     uuid.UUID `json:"room_id"`
+			Link       string    `json:"link"`
+			CreatedAt  time.Time `json:"created_at"`
+			UpdatedAt  time.Time `json:"updated_at"`
+			NumUpvotes int       `json:"num_upvotes"`
+		}
+
+		var resBody []post
+
+		for _, p := range ps {
+			resBody = append(resBody, post{
+				PostID:     p.PostID,
+				RoomID:     p.RoomID,
+				Link:       p.Link,
+				CreatedAt:  p.CreatedAt,
+				UpdatedAt:  p.UpdatedAt,
+				NumUpvotes: int(p.NumUpvotes),
+			})
+		}
+		respondJSON(w, http.StatusOK, resBody)
 	}
 }
