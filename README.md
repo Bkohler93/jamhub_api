@@ -36,7 +36,7 @@ Request Body
   "password": "password1234",
   "display_name": "display nme",
   "phone": "555-123-4567"
-
+}
 ```
 
 Response Body
