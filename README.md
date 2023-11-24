@@ -308,7 +308,7 @@ Response body
 
 Status Codes
 
-- `404` invalid fields in request body
+- `400` invalid fields in request body
 - `401` unauthorized to delete the resource.
 - `201` successful resource creation
 
