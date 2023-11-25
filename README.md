@@ -447,15 +447,16 @@ Status Codes
 - `404` no room exists with `room_id`
 - `201` successful creation of resource.
 
-### DELETE /v1/room_subs/{room_sub_id}
+### DELETE /v1/room_subs/{room_id}
 
-Deletes a room subscription resource that matches `room_sub_id`. Requires access token in Authorization header of request.
+Deletes a room subscription resource that has matching `room_id` and `user_id`. Requires access token in Authorization header of request.
 
-URL parameter `room_sub_id` must be present in URL.
+URL parameter `room_id` must be present in URL.
 
 Status Codes
 
 - `401` unauthorized, missing or invalid access token
+- `404` no resource found with matching `room_id` and `user_id`
 - `400` invalid or missing `room_sub_id` query param
 - `500` failed to delete resource
 - `200` resource deleted successfully
