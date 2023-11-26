@@ -19,11 +19,11 @@ func getV1Router(cfg *apiConfig) *chi.Mux {
 
 	v1Router.Post("/posts", cfg.authMiddleware(cfg.postPostsHandler))
 	v1Router.Delete("/posts/{post_id}", cfg.authMiddleware(cfg.deletePostsHandler))
-	v1Router.Get("/rooms/posts", cfg.getRoomPostsHandler)
+	v1Router.Get("/rooms/posts/{room_id}", cfg.getRoomPostsHandler)
 	v1Router.Get("/posts/rooms", cfg.getRoomPostsOrderedHandler)
 
 	v1Router.Post("/room_subs", cfg.authMiddleware(cfg.postRoomSubsHandler))
-	v1Router.Delete("/room_subs/{room_sub_id}", cfg.authMiddleware(cfg.deleteRoomSubsHandler))
+	v1Router.Delete("/room_subs/{room_id}", cfg.authMiddleware(cfg.deleteRoomSubsHandler))
 	v1Router.Get("/room_subs", cfg.getAllRoomSubsHandler)
 	v1Router.Get("/rooms/room_subs/{room_id}", cfg.getAllRoomRoomSubsHandler)
 	v1Router.Get("/users/room_subs", cfg.authMiddleware(cfg.getUserRoomSubsHandler))

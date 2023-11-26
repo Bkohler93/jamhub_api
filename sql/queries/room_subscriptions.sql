@@ -5,7 +5,7 @@ VALUES ($1,$2,$3,$4,$5) RETURNING *;
 -- name: DeleteRoomSubscription :exec
 DELETE FROM room_subscriptions WHERE room_id=$1 AND user_id=$2;
 
--- name: GetUserRoomSusbcriptions :many
+-- name: GetUserRoomSubscriptions :many
 SELECT * FROM room_subscriptions WHERE user_id=$1;
 
 -- name: GetRoomRoomSubscriptions :many

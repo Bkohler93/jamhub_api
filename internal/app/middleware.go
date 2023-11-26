@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -21,21 +22,25 @@ func (cfg *apiConfig) authMiddleware(handler authHandler) http.HandlerFunc {
 			return
 		}
 		claims := jwt.RegisteredClaims{}
-		jwt, err := jwt.ParseWithClaims(jwtEncoded, &claims, func(t *jwt.Token) (interface{}, error) {
+		token, err := jwt.ParseWithClaims(jwtEncoded, &claims, func(t *jwt.Token) (interface{}, error) {
 			return []byte(cfg.jwtSecret), nil
 		})
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			respondError(w, http.StatusUnauthorized, "expired token")
+			return
+		}
 		if err != nil {
 			respondError(w, http.StatusUnauthorized, fmt.Sprintf("bad access token: %v", err))
 			return
 		}
 
-		issuer, err := jwt.Claims.GetIssuer()
+		issuer, err := token.Claims.GetIssuer()
 		if err != nil || issuer != "jamhub_access" {
 			respondError(w, http.StatusUnauthorized, "invalid token")
 			return
 		}
 
-		id, err := jwt.Claims.GetSubject()
+		id, err := token.Claims.GetSubject()
 		if err != nil {
 			respondError(w, http.StatusUnauthorized, "subject not found in token")
 			return
@@ -43,7 +48,7 @@ func (cfg *apiConfig) authMiddleware(handler authHandler) http.HandlerFunc {
 
 		uid, err := uuid.Parse(id)
 		if err != nil {
-			respondError(w, http.StatusInternalServerError, "id could not be parsed from subject")
+			respondError(w, http.StatusUnauthorized, "id could not be parsed from subject")
 			return
 		}
 
@@ -87,7 +92,7 @@ func (cfg *apiConfig) authRefreshMiddleware(handler authHandler) http.HandlerFun
 
 		uid, err := uuid.Parse(id)
 		if err != nil {
-			respondError(w, http.StatusInternalServerError, "id could not be parsed from subject")
+			respondError(w, http.StatusUnauthorized, "id could not be parsed from subject")
 			return
 		}
 

@@ -322,7 +322,6 @@ func (cfg *apiConfig) postRoomsHandler(w http.ResponseWriter, r *http.Request, u
 
 	decoder := json.NewDecoder(r.Body)
 	decoder.Decode(&reqBody)
-
 	rm, err := cfg.db.CreateRoom(r.Context(), database.CreateRoomParams{
 		ID:        uuid.New(),
 		Name:      reqBody.Name,
@@ -457,18 +456,10 @@ func (cfg *apiConfig) deletePostsHandler(w http.ResponseWriter, r *http.Request,
 }
 
 func (cfg *apiConfig) getRoomPostsHandler(w http.ResponseWriter, r *http.Request) {
-	reqBody := struct {
-		RoomID string `json:"room_id"`
-	}{}
+	roomID := chi.URLParam(r, "room_id")
 	defer r.Body.Close()
-	decoder := json.NewDecoder(r.Body)
-	decoder.Decode(&reqBody)
 
-	if reqBody.RoomID == "" {
-		respondError(w, http.StatusBadRequest, "requires room_id to retrieve posts for room")
-		return
-	}
-	roomUID, err := uuid.Parse(reqBody.RoomID)
+	roomUID, err := uuid.Parse(roomID)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, fmt.Sprintf("invalid room_id - %v", err))
 		return
@@ -532,15 +523,15 @@ func (cfg *apiConfig) postRoomSubsHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (cfg *apiConfig) deleteRoomSubsHandler(w http.ResponseWriter, r *http.Request, u User) {
-	roomSubID := chi.URLParam(r, "room_sub_id")
-	roomSubUUID, err := uuid.Parse(roomSubID)
+	roomID := chi.URLParam(r, "room_id")
+	roomUUID, err := uuid.Parse(roomID)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, fmt.Sprintf("expected valid id query parameter - %v", err))
 		return
 	}
-
+	fmt.Println("deleting room sub at room=", roomID, "user_id=", u.ID)
 	if err = cfg.db.DeleteRoomSubscription(r.Context(), database.DeleteRoomSubscriptionParams{
-		RoomID: roomSubUUID,
+		RoomID: roomUUID,
 		UserID: u.ID,
 	}); err != nil {
 		respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to delete room susbcription - %v", err))
@@ -587,7 +578,7 @@ func (cfg *apiConfig) getAllRoomRoomSubsHandler(w http.ResponseWriter, r *http.R
 }
 
 func (cfg *apiConfig) getUserRoomSubsHandler(w http.ResponseWriter, r *http.Request, u User) {
-	rms, err := cfg.db.GetUserRoomSusbcriptions(r.Context(), u.ID)
+	rms, err := cfg.db.GetUserRoomSubscriptions(r.Context(), u.ID)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to retrieve room subs for user - %v", err))
 		return
@@ -690,7 +681,7 @@ func (cfg *apiConfig) getUserSubscribedRoomsHandler(w http.ResponseWriter, r *ht
 		RoomID            uuid.UUID `json:"room_id"`
 		RoomName          string    `json:"room_name"`
 		CreatedAt         time.Time `json:"created_at"`
-		UpdatedAt         time.Time `json:"updated"`
+		UpdatedAt         time.Time `json:"updated_at"`
 		SubscriptionCount int       `json:"subscription_count"`
 	}
 

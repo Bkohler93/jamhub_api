@@ -141,12 +141,12 @@ func (q *Queries) GetRoomSubscription(ctx context.Context, userID uuid.UUID) (Ro
 	return i, err
 }
 
-const getUserRoomSusbcriptions = `-- name: GetUserRoomSusbcriptions :many
+const getUserRoomSubscriptions = `-- name: GetUserRoomSubscriptions :many
 SELECT id, room_id, user_id, created_at, updated_at FROM room_subscriptions WHERE user_id=$1
 `
 
-func (q *Queries) GetUserRoomSusbcriptions(ctx context.Context, userID uuid.UUID) ([]RoomSubscription, error) {
-	rows, err := q.db.QueryContext(ctx, getUserRoomSusbcriptions, userID)
+func (q *Queries) GetUserRoomSubscriptions(ctx context.Context, userID uuid.UUID) ([]RoomSubscription, error) {
+	rows, err := q.db.QueryContext(ctx, getUserRoomSubscriptions, userID)
 	if err != nil {
 		return nil, err
 	}

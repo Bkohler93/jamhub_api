@@ -12,9 +12,21 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// type apiConfig struct {
+// 	db        *database.Queries
+// 	jwtSecret string
+// }
+
 type apiConfig struct {
-	db        *database.Queries
+	db        DB
 	jwtSecret string
+}
+
+func NewConfig(db DB, jwtSecret string) *apiConfig {
+	return &apiConfig{
+		db:        db,
+		jwtSecret: jwtSecret,
+	}
 }
 
 func RunApp() {
@@ -25,10 +37,12 @@ func RunApp() {
 		log.Fatal("could not establish db connection", err)
 	}
 
-	cfg := &apiConfig{
-		db:        database.New(db),
-		jwtSecret: env.jwtSecret,
-	}
+	cfg := NewConfig(database.New(db), env.jwtSecret)
+
+	// cfg := &apiConfig{
+	// 	db:        database.New(db),
+	// 	jwtSecret: env.jwtSecret,
+	// }
 
 	mux := chi.NewRouter()
 	mux.Use(cors.AllowAll().Handler)
