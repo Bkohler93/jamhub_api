@@ -157,10 +157,6 @@ func (MockDB) UpdateUser(ctx context.Context, arg database.UpdateUserParams) (da
 	return database.User{}, nil
 }
 
-func stringPtr(s string) *string {
-	return &s
-}
-
 func generateTokenSafe(id string, expiration time.Time, issuer string) string {
 	token, _ := generateToken(id, tokenSecret, expiration, issuer)
 	return token
