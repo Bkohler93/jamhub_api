@@ -8,7 +8,7 @@ import (
 )
 
 func TestGetEnv(t *testing.T) {
-
+	t.Error("purposefully failing")
 	err := godotenv.Load("../../.env")
 	if err != nil {
 		log.Fatal("should have been able to load Env")

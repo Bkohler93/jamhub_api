@@ -18,5 +18,8 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
 
-      - name: Check Go Version
-        run: go version
+      - name: Run linter
+        run: go fmt ./...
+
+      - name: Run Unit Tests
+        run: go test ./...
