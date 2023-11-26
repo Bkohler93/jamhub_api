@@ -18,8 +18,21 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
 
-      - name: Run linter
-        run: go fmt ./...
-
       - name: Run Unit Tests
         run: go test ./... -cover
+
+  format:
+    name: format
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21"
+
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Run Linter
+        run: test -z $(go fmt ./...)
