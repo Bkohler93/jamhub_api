@@ -1,5 +1,8 @@
 # JamHub
 
+![coverage badge](https://github.com/bkohler93/jamhub_api/actions/workflows/ci.yml/badge.svg)
+
+
 Welcome to JamHub, the place where you can find and post music you like to whatever niche you're into!
 
 ## Development
