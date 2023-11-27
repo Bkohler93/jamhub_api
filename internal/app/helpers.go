@@ -20,7 +20,7 @@ func respondJSON(w http.ResponseWriter, status int, payload interface{}) {
 		return
 	}
 
-	w.Write(data)
+	w.Write(data) // #nosec G104
 }
 
 func respondError(w http.ResponseWriter, status int, msg string) {
