@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/bkohler93/jamhubapi/internal/database"
 	"github.com/go-chi/chi/v5"
@@ -50,8 +51,9 @@ func RunApp() {
 	mux.Mount("/v1", getV1Router(cfg))
 
 	srv := http.Server{
-		Addr:    "localhost:" + env.port,
-		Handler: mux,
+		Addr:              "localhost:" + env.port,
+		Handler:           mux,
+		ReadHeaderTimeout: time.Second * 10,
 	}
 
 	fmt.Printf("Listening on localhost:%s\n", env.port)

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/bkohler93/jamhubapi/internal/database"
@@ -27,7 +26,7 @@ func (cfg *apiConfig) postUsersHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	decoder := json.NewDecoder(r.Body)
-	decoder.Decode(&reqBody)
+	decoder.Decode(&reqBody) // #nosec G104
 
 	if reqBody.Email == "" && reqBody.Phone == "" {
 		respondError(w, http.StatusBadRequest, "user requires email or phone number to register")
@@ -97,7 +96,7 @@ func (cfg *apiConfig) putUsersHandler(w http.ResponseWriter, r *http.Request, u 
 
 	decoder := json.NewDecoder(r.Body)
 	defer r.Body.Close()
-	decoder.Decode(&reqBody)
+	decoder.Decode(&reqBody) // #nosec G104
 
 	emailNotNull := true
 	if reqBody.Email == "" {
@@ -168,7 +167,7 @@ func (cfg *apiConfig) postLoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 	decoder := json.NewDecoder(r.Body)
-	decoder.Decode(&reqBody)
+	decoder.Decode(&reqBody) // #nosec G104
 
 	if reqBody.Email == "" && reqBody.Phone == "" {
 		respondError(w, http.StatusBadRequest, "require email or phone to login")
@@ -232,7 +231,7 @@ func (cfg *apiConfig) postLogoutHandler(w http.ResponseWriter, r *http.Request, 
 	defer r.Body.Close()
 
 	decoder := json.NewDecoder(r.Body)
-	decoder.Decode(&reqBody)
+	decoder.Decode(&reqBody) // #nosec G104
 
 	if reqBody.RefreshToken == "" {
 		respondError(w, http.StatusBadRequest, "refresh token required to logout")
@@ -321,7 +320,7 @@ func (cfg *apiConfig) postRoomsHandler(w http.ResponseWriter, r *http.Request, u
 	defer r.Body.Close()
 
 	decoder := json.NewDecoder(r.Body)
-	decoder.Decode(&reqBody)
+	decoder.Decode(&reqBody) // #nosec G104
 	rm, err := cfg.db.CreateRoom(r.Context(), database.CreateRoomParams{
 		ID:        uuid.New(),
 		Name:      reqBody.Name,
@@ -338,13 +337,14 @@ func (cfg *apiConfig) postRoomsHandler(w http.ResponseWriter, r *http.Request, u
 }
 
 func (cfg *apiConfig) getRoomsHandler(w http.ResponseWriter, r *http.Request) {
-	var limit int
+	var limit int32
 	l := r.URL.Query().Get("limit")
-	limit, err := strconv.Atoi(l)
+
+	_, err := fmt.Sscan(l, &limit)
 	if err != nil {
 		limit = 10
 	}
-	rooms, err := cfg.db.GetRooms(r.Context(), int32(limit))
+	rooms, err := cfg.db.GetRooms(r.Context(), limit)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, fmt.Sprintf("could not get rooms - %v", err))
 		return
@@ -394,7 +394,7 @@ func (cfg *apiConfig) postPostsHandler(w http.ResponseWriter, r *http.Request, u
 	decoder := json.NewDecoder(r.Body)
 	defer r.Body.Close()
 
-	decoder.Decode(&reqBody)
+	decoder.Decode(&reqBody) // #nosec G104
 	if reqBody.RoomID == "" || reqBody.Link == "" {
 		respondError(w, http.StatusBadRequest, "Expected room_id and link in request body")
 		return
@@ -486,7 +486,7 @@ func (cfg *apiConfig) postRoomSubsHandler(w http.ResponseWriter, r *http.Request
 
 	decoder := json.NewDecoder(r.Body)
 	defer r.Body.Close()
-	decoder.Decode(&reqBody)
+	decoder.Decode(&reqBody) // #nosec G104
 
 	if reqBody.RoomID == "" {
 		respondError(w, http.StatusBadRequest, "expected room_id in request - ")
@@ -651,21 +651,15 @@ func (cfg *apiConfig) deletePostHandler(w http.ResponseWriter, r *http.Request, 
 }
 
 func (cfg *apiConfig) getUserSubscribedRoomsHandler(w http.ResponseWriter, r *http.Request, u User) {
-	var l int
-	var o int
 
 	limit := r.URL.Query().Get("limit")
 	offset := r.URL.Query().Get("offset")
 
-	l, err := strconv.Atoi(limit)
-	if err != nil {
-		l = 10
-	}
+	var l int32
+	fmt.Sscan(limit, &l) // #nosec G104
 
-	o, err = strconv.Atoi(offset)
-	if err != nil {
-		o = 0
-	}
+	var o int32
+	fmt.Sscan(offset, &o) // #nosec G104
 
 	rms, err := cfg.db.GetUserRoomsOrderedBySubs(r.Context(), database.GetUserRoomsOrderedBySubsParams{
 		UserID: u.ID,
@@ -701,24 +695,19 @@ func (cfg *apiConfig) getUserSubscribedRoomsHandler(w http.ResponseWriter, r *ht
 }
 
 func (cfg *apiConfig) getRoomsOrderedByRoomSubsHandler(w http.ResponseWriter, r *http.Request) {
-	var l int
-	var o int
 
 	limit := r.URL.Query().Get("limit")
 	offset := r.URL.Query().Get("offset")
 
-	l, err := strconv.Atoi(limit)
-	if err != nil {
-		l = 10
-	}
+	var l int32
+	fmt.Sscan(limit, &l) // #nosec G104
 
-	o, err = strconv.Atoi(offset)
-	if err != nil {
-		o = 0
-	}
+	var o int32
+	fmt.Sscan(offset, &o) // #nosec G104
+
 	rms, err := cfg.db.GetRoomsOrderedBySubs(r.Context(), database.GetRoomsOrderedBySubsParams{
-		Limit:  int32(l),
-		Offset: int32(o),
+		Limit:  l,
+		Offset: o,
 	})
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to retrieve rooms - %v", err))
@@ -753,7 +742,7 @@ func (cfg *apiConfig) getRoomPostsOrderedHandler(w http.ResponseWriter, r *http.
 	}{}
 
 	decoder := json.NewDecoder(r.Body)
-	decoder.Decode(&reqBody)
+	decoder.Decode(&reqBody) // #nosec G104
 	defer r.Body.Close()
 
 	if reqBody.RoomID == "" {
