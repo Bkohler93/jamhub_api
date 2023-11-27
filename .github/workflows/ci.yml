@@ -14,15 +14,17 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: "1.20"
-
       - name: Check out code
         uses: actions/checkout@v3
-
+      - name: Run Gosec Security Scanner
+        uses: securego/gosec@master
+        with:
+          args: ./...
       - name: Run Unit Tests
         run: go test ./... -cover
 
-  format:
-    name: format
+  style:
+    name: style
     runs-on: ubuntu-latest
 
     steps:
