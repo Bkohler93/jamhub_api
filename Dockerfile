@@ -1,12 +1,10 @@
-FROM golang:1.21
+FROM --platform=linux/amd64 debian:stable-slim
 
-WORKDIR /app
+RUN apt-get update && apt-get install -y ca-certificates
 
-COPY go.mod go.sum ./
+ADD jamhubapi /usr/bin/jamhubapi
+COPY .env .env
 
-RUN go mod download
+ENV DOTENV_PATH .env
 
-COPY cmd/ /app/cmd/
-COPY internal/ /app/internal/
-COPY scripts/ /app/scripts/
-COPY sql/ /app/sql/
+CMD ["jamhubapi"]
