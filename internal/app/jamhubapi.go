@@ -51,6 +51,16 @@ func RunApp() {
 		w.WriteHeader(200)
 		w.Write([]byte("Jamhub API is ready for requests."))
 	})
+	mux.Get("/db-connection/ready", func(w http.ResponseWriter, r *http.Request) {
+		err = db.Ping()
+		if err != nil {
+			w.WriteHeader(500)
+			w.Write([]byte("db connection failed"))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("db connected and ready"))
+	})
 	mux.Mount("/v1", getV1Router(cfg))
 
 	srv := http.Server{
