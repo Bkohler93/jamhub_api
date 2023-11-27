@@ -10,7 +10,8 @@ import (
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal(err)
+		log.Print("Working without .env file")
+		log.Println(err)
 	}
 	app.RunApp()
 }
