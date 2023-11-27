@@ -64,7 +64,8 @@ func (cfg *apiConfig) postUsersHandler(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:    time.Now(),
 	})
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "failed to create user")
+		respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to create user - %v", err))
+		return
 	}
 
 	resBody := struct {
@@ -123,7 +124,6 @@ func (cfg *apiConfig) putUsersHandler(w http.ResponseWriter, r *http.Request, u 
 	if reqBody.DisplayName == "" {
 		displayNameNotNull = false
 	}
-
 	user, err := cfg.db.UpdateUser(r.Context(), database.UpdateUserParams{
 		Email:        sql.NullString{String: reqBody.Email, Valid: emailNotNull},
 		Phone:        sql.NullString{String: reqBody.Phone, Valid: phoneNotNull},
@@ -529,7 +529,6 @@ func (cfg *apiConfig) deleteRoomSubsHandler(w http.ResponseWriter, r *http.Reque
 		respondError(w, http.StatusBadRequest, fmt.Sprintf("expected valid id query parameter - %v", err))
 		return
 	}
-	fmt.Println("deleting room sub at room=", roomID, "user_id=", u.ID)
 	if err = cfg.db.DeleteRoomSubscription(r.Context(), database.DeleteRoomSubscriptionParams{
 		RoomID: roomUUID,
 		UserID: u.ID,
@@ -661,10 +660,14 @@ func (cfg *apiConfig) getUserSubscribedRoomsHandler(w http.ResponseWriter, r *ht
 	var o int32
 	fmt.Sscan(offset, &o) // #nosec G104
 
+	if l == 0 {
+		l = 10
+	}
+
 	rms, err := cfg.db.GetUserRoomsOrderedBySubs(r.Context(), database.GetUserRoomsOrderedBySubsParams{
 		UserID: u.ID,
-		Limit:  int32(l),
-		Offset: int32(o),
+		Limit:  l,
+		Offset: o,
 	})
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, fmt.Sprintf("error retrieving user subscribed rooms - %v", err))
@@ -704,6 +707,10 @@ func (cfg *apiConfig) getRoomsOrderedByRoomSubsHandler(w http.ResponseWriter, r 
 
 	var o int32
 	fmt.Sscan(offset, &o) // #nosec G104
+
+	if l == 0 {
+		l = 10
+	}
 
 	rms, err := cfg.db.GetRoomsOrderedBySubs(r.Context(), database.GetRoomsOrderedBySubsParams{
 		Limit:  l,

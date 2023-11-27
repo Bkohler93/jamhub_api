@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -12,7 +13,6 @@ import (
 )
 
 func respondJSON(w http.ResponseWriter, status int, payload interface{}) {
-	w.WriteHeader(status)
 
 	data, err := json.Marshal(payload)
 	if err != nil {
@@ -20,6 +20,7 @@ func respondJSON(w http.ResponseWriter, status int, payload interface{}) {
 		return
 	}
 
+	w.WriteHeader(status)
 	w.Write(data) // #nosec G104
 }
 
@@ -75,7 +76,7 @@ func getEnvVars() envVariables {
 	if dbURL == "" {
 		log.Fatal("require DATABASE_APP_URL in .env")
 	}
-
+	fmt.Println(dbURL)
 	return envVariables{
 		port:      port,
 		dbURL:     os.Getenv("DATABASE_APP_URL"),
