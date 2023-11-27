@@ -47,7 +47,10 @@ func RunApp() {
 
 	mux := chi.NewRouter()
 	mux.Use(cors.AllowAll().Handler)
-
+	mux.Get("/ready", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(200)
+		w.Write([]byte("Jamhub API is ready for requests."))
+	})
 	mux.Mount("/v1", getV1Router(cfg))
 
 	srv := http.Server{
