@@ -51,11 +51,11 @@ func RunApp() {
 	mux.Mount("/v1", getV1Router(cfg))
 
 	srv := http.Server{
-		Addr:              "localhost:" + env.port,
+		Addr:              ":" + env.port,
 		Handler:           mux,
 		ReadHeaderTimeout: time.Second * 10,
 	}
 
-	fmt.Printf("Listening on localhost:%s\n", env.port)
+	fmt.Printf("Listening on port:%s\n", env.port)
 	log.Fatal(srv.ListenAndServe())
 }
