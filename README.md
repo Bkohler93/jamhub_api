@@ -7,6 +7,8 @@ Welcome to JamHub, the place where you can find and post music you like to whate
 
 ## Development
 
+Uses [goose](https://github.com/pressly/goose) for migrations, install is required to run project.
+
 # API Documentation
 
 ## User resource

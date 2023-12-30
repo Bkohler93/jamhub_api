@@ -55,7 +55,7 @@ func RunApp() {
 		err = db.Ping()
 		if err != nil {
 			w.WriteHeader(500)
-			w.Write([]byte("db connection failed"))
+			w.Write([]byte(fmt.Sprintf("db connection failed: %s", err)))
 			return
 		}
 		w.WriteHeader(http.StatusOK)

@@ -1,8 +1,24 @@
+# Requires environment variables when running container, see .env.example
+
+
 # FROM --platform=linux/amd64 debian:stable-slim
 FROM golang:1.21
 
-RUN apt-get update && apt-get install -y ca-certificates
+# set working directory
+WORKDIR /app
 
-ADD jamhubapi /usr/bin/jamhubapi
+# copy source code
+COPY . .
 
-CMD ["jamhubapi"]
+# get dependencies
+RUN go get -d -v ./...
+
+# install goose
+RUN go install github.com/pressly/goose/v3/cmd/goose@latest
+
+# build application
+RUN go build -o jamhubapi ./cmd/*
+
+EXPOSE 8080
+
+CMD ["./scripts/run_prod.sh"]

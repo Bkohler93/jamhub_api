@@ -10,6 +10,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/joho/godotenv"
 )
 
 func respondJSON(w http.ResponseWriter, status int, payload interface{}) {
@@ -62,24 +63,37 @@ type envVariables struct {
 }
 
 func getEnvVars() envVariables {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	var (
+		port      string
+		ok        bool
+		jwtSecret string
+		dbURL     string
+	)
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("Using manually set .env", err) // production
 	}
 
-	jwtSecret := os.Getenv("SUPER_SECRET")
-	if jwtSecret == "" {
+	if port, ok = os.LookupEnv("PORT"); !ok {
+		port = "8080"
+		log.Println("PORT var not found")
+	}
+
+	if jwtSecret, ok = os.LookupEnv("SUPER_SECRET"); !ok {
 		log.Fatal("require SUPER_SECRET in .env")
 	}
 
-	dbURL := os.Getenv("DATABASE_APP_URL")
-	if dbURL == "" {
-		log.Fatal("require DATABASE_APP_URL in .env")
+	if dbURL, ok = os.LookupEnv("DATABASE_URL"); !ok {
+		log.Fatal("require DATABASE_URL in .env")
 	}
+	dbMode := "?sslmode=disable"
+
 	fmt.Println(dbURL)
+
 	return envVariables{
 		port:      port,
-		dbURL:     os.Getenv("DATABASE_APP_URL"),
-		jwtSecret: os.Getenv("SUPER_SECRET"),
+		dbURL:     fmt.Sprintf("%s%s", dbURL, dbMode),
+		jwtSecret: jwtSecret,
 	}
 }
