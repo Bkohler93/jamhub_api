@@ -112,14 +112,12 @@ func TestPostModel(t *testing.T) {
 }
 
 func TestRoomSubModel(t *testing.T) {
-	id := uuid.New()
 	roomID := uuid.New()
 	userID := uuid.New()
 	createdAt := time.Now()
 	updatedAt := time.Now()
 
 	expectedRoomSub := RoomSubscription{
-		ID:        id,
 		RoomID:    roomID,
 		UserID:    userID,
 		CreatedAt: createdAt,
@@ -127,7 +125,6 @@ func TestRoomSubModel(t *testing.T) {
 	}
 
 	dbRS := database.RoomSubscription{
-		ID:        id,
 		RoomID:    roomID,
 		UserID:    userID,
 		CreatedAt: createdAt,

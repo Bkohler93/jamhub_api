@@ -66,7 +66,6 @@ func databasePostToPost(dbP database.Post) Post {
 }
 
 type RoomSubscription struct {
-	ID        uuid.UUID `json:"id"`
 	RoomID    uuid.UUID `json:"room_id"`
 	UserID    uuid.UUID `json:"user_id"`
 	CreatedAt time.Time `json:"created_at"`
@@ -75,7 +74,6 @@ type RoomSubscription struct {
 
 func databaseRoomSubscriptionToRoomSubscription(dbRS database.RoomSubscription) RoomSubscription {
 	return RoomSubscription{
-		ID:        dbRS.ID,
 		RoomID:    dbRS.RoomID,
 		UserID:    dbRS.UserID,
 		CreatedAt: dbRS.CreatedAt,

@@ -495,7 +495,7 @@ func (cfg *apiConfig) postRoomSubsHandler(w http.ResponseWriter, r *http.Request
 
 	roomUID, err := uuid.Parse(reqBody.RoomID)
 	if err != nil {
-		respondError(w, http.StatusBadGateway, fmt.Sprintf("invalid room_id - %v", err))
+		respondError(w, http.StatusBadRequest, fmt.Sprintf("invalid room_id - %v", err))
 		return
 	}
 
@@ -506,7 +506,6 @@ func (cfg *apiConfig) postRoomSubsHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	rms, err := cfg.db.CreateRoomSubscription(r.Context(), database.CreateRoomSubscriptionParams{
-		ID:        uuid.New(),
 		RoomID:    roomUID,
 		UserID:    u.ID,
 		CreatedAt: time.Now(),
@@ -682,8 +681,8 @@ func (cfg *apiConfig) getUserSubscribedRoomsHandler(w http.ResponseWriter, r *ht
 		SubscriptionCount int       `json:"subscription_count"`
 	}
 
-	var respBody []rmRespBody
-
+	// var respBody []rmRespBody
+	respBody := []rmRespBody{}
 	for _, rm := range rms {
 		respBody = append(respBody, rmRespBody{
 			RoomID:            rm.RoomID,
