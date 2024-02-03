@@ -21,7 +21,6 @@ type Post struct {
 }
 
 type PostVote struct {
-	ID        uuid.UUID
 	PostID    uuid.UUID
 	UserID    uuid.UUID
 	CreatedAt time.Time

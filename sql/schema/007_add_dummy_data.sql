@@ -19,10 +19,10 @@ INSERT INTO room_subscriptions (room_id, user_id, created_at, updated_at) VALUES
     ('5b5f6c2d-8e9a-4f7c-a3d2-1e2d3f4b5c6d', '2f8cde2a-7d9f-4b3c-92b3-2a1e5d4c3f8d', '2023-01-02 14:00:00', '2023-01-02 14:00:00'),
     ('6c6f7a3e-9d8b-4c6a-b5d4-3e4f5a6b7a8e', '3e6cf8a4-865d-4f9a-b4f2-1c4b5d6e7c3e', '2023-01-03 15:30:00', '2023-01-03 15:30:00');
 
-INSERT INTO post_votes (id, post_id, user_id, created_at, updated_at, is_up) VALUES
-    ('4a5b6c7d-8e9f-1a2b-3c4d-5e6f7a8b9c1d', '7d7e6b4a-2c1b-4a3f-8b7a-9e8e7f6d5b4a', '1f4ab37a-788b-4e9e-8a5e-3a7b6b8bb4b1', '2023-01-01 13:00:00', '2023-01-01 13:00:00', TRUE),
-    ('5c6d7e8f-9a1b-2c3d-4e5f-6a7b8c9d1e2f', '8d9f8c2a-4c3f-4b7c-9d2a-8d7b3f4c3f8d', '2f8cde2a-7d9f-4b3c-92b3-2a1e5d4c3f8d', '2023-01-02 15:00:00', '2023-01-02 15:00:00', FALSE),
-    ('6e7f8a9b-1c2d-3e4f-5a6b-7c8d9e1f2a3b', '9a4d5e1b-7d9f-4a3f-8b7a-3e7b6d5e4f5a', '3e6cf8a4-865d-4f9a-b4f2-1c4b5d6e7c3e', '2023-01-03 16:30:00', '2023-01-03 16:30:00', TRUE);
+INSERT INTO post_votes (post_id, user_id, created_at, updated_at, is_up) VALUES
+    ('7d7e6b4a-2c1b-4a3f-8b7a-9e8e7f6d5b4a', '1f4ab37a-788b-4e9e-8a5e-3a7b6b8bb4b1', '2023-01-01 13:00:00', '2023-01-01 13:00:00', TRUE),
+    ('8d9f8c2a-4c3f-4b7c-9d2a-8d7b3f4c3f8d', '2f8cde2a-7d9f-4b3c-92b3-2a1e5d4c3f8d', '2023-01-02 15:00:00', '2023-01-02 15:00:00', FALSE),
+    ('9a4d5e1b-7d9f-4a3f-8b7a-3e7b6d5e4f5a', '3e6cf8a4-865d-4f9a-b4f2-1c4b5d6e7c3e', '2023-01-03 16:30:00', '2023-01-03 16:30:00', TRUE);
 
 
 -- +goose Down

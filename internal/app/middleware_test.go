@@ -22,6 +22,11 @@ const (
 type MockDB struct {
 }
 
+// GetPostVote retrieves a PostVote
+func (MockDB) GetPostVote(ctx context.Context, arg database.GetPostVoteParams) (database.PostVote, error) {
+	return database.PostVote{}, nil
+}
+
 // CreatePost implements DB.
 func (MockDB) CreatePost(ctx context.Context, arg database.CreatePostParams) (database.Post, error) {
 	return database.Post{}, nil
@@ -58,7 +63,7 @@ func (MockDB) DeletePost(ctx context.Context, uid uuid.UUID) error {
 }
 
 // DeletePostVote implements DB.
-func (MockDB) DeletePostVote(ctx context.Context, uid uuid.UUID) error {
+func (MockDB) DeletePostVote(ctx context.Context, arg database.DeletePostVoteParams) error {
 	return nil
 }
 
@@ -85,6 +90,10 @@ func (MockDB) GetNewRoomPosts(ctx context.Context, uid uuid.UUID) ([]database.Po
 // GetPost implements DB.
 func (MockDB) GetPost(ctx context.Context, uid uuid.UUID) (database.Post, error) {
 	return database.Post{}, nil
+}
+
+func (MockDB) GetPostPostVotes(ctx context.Context, postID uuid.UUID) ([]database.PostVote, error) {
+	return []database.PostVote{}, nil
 }
 
 // GetRevokedToken implements DB.

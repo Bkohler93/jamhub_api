@@ -92,7 +92,6 @@ type PostVote struct {
 
 func databasePostVoteToPostVote(dbPV database.PostVote) PostVote {
 	return PostVote{
-		ID:        dbPV.ID,
 		PostID:    dbPV.PostID,
 		UserID:    dbPV.UserID,
 		CreatedAt: dbPV.CreatedAt,

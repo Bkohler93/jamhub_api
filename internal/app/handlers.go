@@ -610,8 +610,19 @@ func (cfg *apiConfig) postPostVotesHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	//delete postvote if it exists
+	old_pv, err := cfg.db.GetPostVote(r.Context(), database.GetPostVoteParams{
+		PostID: postUID,
+		UserID: u.ID,
+	})
+	if err == nil {
+		cfg.db.DeletePostVote(r.Context(), database.DeletePostVoteParams{
+			PostID: old_pv.PostID,
+			UserID: old_pv.UserID,
+		})
+	}
+
 	pv, err := cfg.db.CreatePostVote(r.Context(), database.CreatePostVoteParams{
-		ID:        uuid.New(),
 		PostID:    postUID,
 		UserID:    u.ID,
 		CreatedAt: time.Now(),
@@ -639,7 +650,11 @@ func (cfg *apiConfig) deletePostHandler(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	err = cfg.db.DeletePostVote(r.Context(), postUID)
+	err = cfg.db.DeletePostVote(r.Context(), database.DeletePostVoteParams{
+		PostID: postUID,
+		UserID: u.ID,
+	})
+
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, fmt.Sprintf("error deleting post vote - %v", err))
 		return
@@ -811,4 +826,40 @@ func (cfg *apiConfig) getRoomPostsOrderedHandler(w http.ResponseWriter, r *http.
 		}
 		respondJSON(w, http.StatusOK, resBody)
 	}
+}
+
+func (cfg *apiConfig) getPostPostVotesHandler(w http.ResponseWriter, r *http.Request) {
+	postID := chi.URLParam(r, "post_id")
+	pID, err := uuid.Parse(postID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, fmt.Sprintf("error parsing post ID: %v", err))
+		return
+	}
+
+	postVotes, err := cfg.db.GetPostPostVotes(r.Context(), pID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, fmt.Sprintf("error retrieving post's post votes: %v", err))
+		return
+	}
+
+	type respBody struct {
+		PostID    uuid.UUID `json:"post_id"`
+		UserID    uuid.UUID `json:"user_id"`
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"updated_at"`
+		IsUp      bool      `json:"is_up"`
+	}
+
+	var res []respBody
+	for _, pv := range postVotes {
+		res = append(res, respBody{
+			PostID:    pv.PostID,
+			UserID:    pv.UserID,
+			CreatedAt: pv.CreatedAt,
+			UpdatedAt: pv.UpdatedAt,
+			IsUp:      pv.IsUp,
+		})
+	}
+
+	respondJSON(w, http.StatusOK, res)
 }

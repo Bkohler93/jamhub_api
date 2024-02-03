@@ -49,7 +49,11 @@ type DB interface {
 
 	CreatePostVote(ctx context.Context, arg database.CreatePostVoteParams) (database.PostVote, error)
 
-	DeletePostVote(ctx context.Context, uid uuid.UUID) error
+	DeletePostVote(ctx context.Context, arg database.DeletePostVoteParams) error
+
+	GetPostVote(ctx context.Context, arg database.GetPostVoteParams) (database.PostVote, error)
+
+	GetPostPostVotes(ctx context.Context, postID uuid.UUID) ([]database.PostVote, error)
 
 	GetUserRoomsOrderedBySubs(ctx context.Context, arg database.GetUserRoomsOrderedBySubsParams) ([]database.GetUserRoomsOrderedBySubsRow, error)
 

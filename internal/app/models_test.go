@@ -156,7 +156,6 @@ func TestPostVoteModel(t *testing.T) {
 	}
 
 	dbPostVote := database.PostVote{
-		ID:        ID,
 		PostID:    postID,
 		UserID:    userID,
 		CreatedAt: createdAt,
