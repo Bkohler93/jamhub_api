@@ -471,7 +471,7 @@ func (cfg *apiConfig) getRoomPostsHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	var posts []Post
+	posts := []Post{}
 	for _, p := range ps {
 		posts = append(posts, databasePostToPost(p))
 	}
@@ -850,7 +850,7 @@ func (cfg *apiConfig) getPostPostVotesHandler(w http.ResponseWriter, r *http.Req
 		IsUp      bool      `json:"is_up"`
 	}
 
-	var res []respBody
+	res := []respBody{}
 	for _, pv := range postVotes {
 		res = append(res, respBody{
 			PostID:    pv.PostID,
